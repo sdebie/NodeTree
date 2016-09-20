@@ -6,6 +6,7 @@
 package org.nodetreeinfo;
 
 import com.mxgraph.layout.mxCompactTreeLayout;
+import com.mxgraph.model.mxCell;
 import com.mxgraph.model.mxGraphModel;
 import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.view.mxGraph;
@@ -48,12 +49,35 @@ public class NodeTree extends JFrame {
 		try {
 			graph.insertVertex(parent, "1", "Kick", 1, 1, 80, 30);
 			graph.insertVertex(parent, "2", "Ass", 1, 1, 80, 30);
+			graph.insertVertex(parent, "3", "Node One", 1, 1, 80, 30);
+			graph.insertVertex(parent, "4", "Node 2", 1, 1, 80, 30);
+			graph.insertVertex(parent, "5", "Node 3", 1, 1, 80, 30);
+
+			graph.insertVertex(parent, "6", "Level 3-One", 1, 1, 80, 30);
+			graph.insertVertex(parent, "7", "Leverl 3-2", 1, 1, 80, 30);
+			graph.insertVertex(parent, "8", "Leevl 3-3", 1, 1, 80, 30);
 
 			mxGraphModel test = new mxGraphModel();
-			Object cell1 = test.getChildAt(parent, 0);
+			int iIndex = 1;
+			while (iIndex < 5) {
+				Object cell1 = test.getChildAt(parent, 0);
+				mxCell cell2 = (mxCell) test.getChildAt(parent, iIndex);
+				if (cell2.getId().isEmpty()) {
+					break;
+				}//if
+				graph.insertEdge(parent, "", "", cell1, cell2);
+				iIndex++;
+			}//while
 
-			Object cell2 = test.getChildAt(parent, 1);
-			graph.insertEdge(parent, "", "", cell1, cell2);
+			while (true) {
+				Object cell1 = test.getChildAt(parent, 2);
+				mxCell cell2 = (mxCell) test.getChildAt(parent, iIndex);
+				if (cell2.getId().isEmpty()) {
+					break;
+				}//if
+				graph.insertEdge(parent, "", "", cell1, cell2);
+				iIndex++;
+			}//while
 
 			vLayout.setHorizontal(false);
 			vLayout.setLevelDistance(10);
@@ -76,7 +100,7 @@ public class NodeTree extends JFrame {
 		mxGraphComponent graphComponent = new mxGraphComponent(graph);
 		frame.getContentPane().add(graphComponent);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(400, 320);
+		frame.setSize(800, 600);
 		frame.setVisible(true);
 	}
 
