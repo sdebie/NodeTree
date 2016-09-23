@@ -6,31 +6,19 @@
 package org.nodetreeinfo;
 
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
-import com.mxgraph.layout.mxCompactTreeLayout;
 import com.mxgraph.model.mxCell;
 import com.mxgraph.model.mxGraphModel;
-import com.mxgraph.swing.handler.mxRubberband;
 import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.util.mxConstants;
 import com.mxgraph.view.mxGraph;
-import com.mxgraph.view.mxStylesheet;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.ResultSet;
 import javax.swing.JFrame;
-import org.jgraph.graph.DefaultEdge;
-import org.jgrapht.DirectedGraph;
-import org.jgrapht.ListenableGraph;
-import org.jgrapht.graph.DefaultListenableGraph;
-import org.jgrapht.graph.DirectedMultigraph;
 import org.tradeswitch.base.DBException;
-import org.tradeswitch.base.Database;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Hashtable;
 import java.util.LinkedHashMap;
-import javafx.scene.control.Cell;
 
 /**
  *
@@ -58,32 +46,14 @@ public class NodeTree extends JFrame {
 
 		graph.getModel().beginUpdate();
 		try {
-			int iIndex = 0;
 			Statement st = conn.createStatement();
 			ResultSet rs = st.executeQuery("select * from NODES order by NDS_IRN");
 
 			while (rs.next()) {
 				String vNodeName = rs.getString("NDS_NAME");
 				Long vNodeID = rs.getLong("NDS_IRN");
-				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30, "fillColor=green");
+				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=green");
 
-				//Add Parent and Index
-				relasions.put(vNodeID.intValue(), iIndex);
-				iIndex++;
-			}//while
-
-			iIndex = 0;
-			Object vChild;
-			mxCell vParent;
-			rs = st.executeQuery("select * from NODES order by NDS_IRN");
-			while (rs.next()) {
-				if (rs.getInt("NDS_NDS_IRN") > 0) {
-					int vParentIndex = relasions.get(rs.getInt("NDS_NDS_IRN"));
-					vChild = vModel.getChildAt(parent, iIndex);
-					vParent = (mxCell) vModel.getChildAt(parent, vParentIndex);
-					graph.insertEdge(parent, "", "", vParent, vChild);
-				}//if
-				iIndex++;
 			}//while
 
 			vLayout.setResizeParent(false);
