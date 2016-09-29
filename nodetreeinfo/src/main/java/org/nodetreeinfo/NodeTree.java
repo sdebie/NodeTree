@@ -6,6 +6,8 @@
 package org.nodetreeinfo;
 
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
+import com.mxgraph.model.mxCell;
+import com.mxgraph.model.mxGraphModel;
 import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.util.mxConstants;
 import com.mxgraph.view.mxGraph;
@@ -16,6 +18,7 @@ import org.tradeswitch.base.DBException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.LinkedHashMap;
 
 /**
  *
@@ -38,21 +41,42 @@ public class NodeTree extends JFrame {
 		graph = new mxGraph();
 		mxHierarchicalLayout vLayout = new mxHierarchicalLayout(graph);
 		Object parent = graph.getDefaultParent();
+		mxGraphModel vModel = new mxGraphModel();
+		LinkedHashMap<Integer, Integer> relasions = new LinkedHashMap<>();
 
 		graph.getModel().beginUpdate();
 		try {
+			int iIndex = 0;
 			Statement st = conn.createStatement();
 			ResultSet rs = st.executeQuery("select * from NODES order by NDS_IRN");
 
 			while (rs.next()) {
 				String vNodeName = rs.getString("NDS_NAME");
 				Long vNodeID = rs.getLong("NDS_IRN");
-				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=green");
-
+				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=blue");
+				graph.setAutoSizeCells(true);
+				//Add Parent and Index
+				relasions.put(vNodeID.intValue(), iIndex);
+				iIndex++;
 			}//while
 
-			vLayout.setResizeParent(false);
-			vLayout.setMoveParent(false);
+			iIndex = 0;
+			Object vChild;
+			mxCell vParent;
+			rs = st.executeQuery("select * from NODES order by NDS_IRN");
+			while (rs.next()) {
+				if (rs.getInt("NDS_NDS_IRN") > 0) {
+					int vParentIndex = relasions.get(rs.getInt("NDS_NDS_IRN"));
+					vChild = (mxCell) vModel.getChildAt(parent, iIndex);
+					vParent = (mxCell) vModel.getChildAt(parent, vParentIndex);
+
+					graph.insertEdge(parent, "", "", vParent, vChild);
+				}//if
+				iIndex++;
+			}//while
+
+			vLayout.setResizeParent(true);
+			vLayout.setMoveParent(true);
 			vLayout.setParentBorder(0);
 
 			vLayout.setIntraCellSpacing(30);
