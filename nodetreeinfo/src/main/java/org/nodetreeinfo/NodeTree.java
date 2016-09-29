@@ -42,7 +42,7 @@ public class NodeTree extends JFrame {
 		mxHierarchicalLayout vLayout = new mxHierarchicalLayout(graph);
 		Object parent = graph.getDefaultParent();
 		mxGraphModel vModel = new mxGraphModel();
-		LinkedHashMap<Integer, Integer> relasions = new LinkedHashMap<>();
+		LinkedHashMap<Integer, Integer> relations = new LinkedHashMap<>();
 
 		graph.getModel().beginUpdate();
 		try {
@@ -56,7 +56,7 @@ public class NodeTree extends JFrame {
 				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=blue");
 				graph.setAutoSizeCells(true);
 				//Add Parent and Index
-				relasions.put(vNodeID.intValue(), iIndex);
+				relations.put(vNodeID.intValue(), iIndex);
 				iIndex++;
 			}//while
 
@@ -66,7 +66,7 @@ public class NodeTree extends JFrame {
 			rs = st.executeQuery("select * from NODES order by NDS_IRN");
 			while (rs.next()) {
 				if (rs.getInt("NDS_NDS_IRN") > 0) {
-					int vParentIndex = relasions.get(rs.getInt("NDS_NDS_IRN"));
+					int vParentIndex = relations.get(rs.getInt("NDS_NDS_IRN"));
 					vChild = (mxCell) vModel.getChildAt(parent, iIndex);
 					vParent = (mxCell) vModel.getChildAt(parent, vParentIndex);
 
