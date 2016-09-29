@@ -6,11 +6,12 @@
 package org.nodetreeinfo;
 
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
+import com.mxgraph.model.mxCell;
+import com.mxgraph.model.mxGraphModel;
+import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.util.mxConstants;
 import com.mxgraph.view.mxGraph;
 import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.sql.Connection;
@@ -20,11 +21,12 @@ import org.tradeswitch.base.DBException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import javax.swing.JButton;
+import java.util.LinkedHashMap;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+
 
 /**
  *
@@ -33,36 +35,56 @@ import javax.swing.JPanel;
 public class NodeTree extends JFrame {
 
 	private static final long serialVersionUID = -2707712944901661771L;
-	private static mxGraph graph;
+    private static mxGraph graph;
     private static Connection conn;
     private static String DbSchemaName;
-
+    private static JPanel vNodeTreePanel;
+    private static JFrame frame;
 	public NodeTree()
 	{
 
 	}
 
-	public static void InitTree() throws DBException, SQLException
-    {
-
+    public static mxGraph InitTree() throws DBException, SQLException {
         graph = new mxGraph();
         mxHierarchicalLayout vLayout = new mxHierarchicalLayout(graph);
 		Object parent = graph.getDefaultParent();
+		mxGraphModel vModel = new mxGraphModel();
+		LinkedHashMap<Integer, Integer> relations = new LinkedHashMap<>();
 
 		graph.getModel().beginUpdate();
 		try {
+			int iIndex = 0;
 			Statement st = conn.createStatement();
 			ResultSet rs = st.executeQuery("select * from NODES order by NDS_IRN");
 
 			while (rs.next()) {
 				String vNodeName = rs.getString("NDS_NAME");
 				Long vNodeID = rs.getLong("NDS_IRN");
-				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=green");
-
+				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=blue");
+				graph.setAutoSizeCells(true);
+				//Add Parent and Index
+				relations.put(vNodeID.intValue(), iIndex);
+				iIndex++;
 			}//while
 
-			vLayout.setResizeParent(false);
-			vLayout.setMoveParent(false);
+			iIndex = 0;
+			Object vChild;
+			mxCell vParent;
+			rs = st.executeQuery("select * from NODES order by NDS_IRN");
+			while (rs.next()) {
+				if (rs.getInt("NDS_NDS_IRN") > 0) {
+					int vParentIndex = relations.get(rs.getInt("NDS_NDS_IRN"));
+					vChild = (mxCell) vModel.getChildAt(parent, iIndex);
+					vParent = (mxCell) vModel.getChildAt(parent, vParentIndex);
+
+					graph.insertEdge(parent, "", "", vParent, vChild);
+				}//if
+				iIndex++;
+			}//while
+
+			vLayout.setResizeParent(true);
+			vLayout.setMoveParent(true);
 			vLayout.setParentBorder(0);
 
 			vLayout.setIntraCellSpacing(30);
@@ -78,31 +100,22 @@ public class NodeTree extends JFrame {
 
 			vLayout.execute(parent);
 
-		} finally {
-			graph.getModel().endUpdate();
-		}
+        }
+        finally {
+            graph.getModel().endUpdate();
+        }
 
+        return graph;
 	}//InitTree
 
-	public static void main(String[] args) throws Exception
-    {
-        JFrame frame = new JFrame();
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    public static void main(String[] args) throws Exception    {
+        frame = new JFrame();
         frame.setSize(800, 600);
 
         setMenu(frame);
 
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
-        conn = connectToDatabaseOrDie();
-//		InitTree();
-//		JFrame frame = new JFrame();
-//		mxGraphComponent graphComponent = new mxGraphComponent(graph);
-//		graphComponent.setEnabled(false);
-//        frame.getContentPane().add(graphComponent);
-//		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//		frame.setSize(800, 600);
-//        frame.setVisible(true);
-
 	}
 
 	private static Connection connectToDatabaseOrDie()
@@ -120,8 +133,8 @@ public class NodeTree extends JFrame {
                     break;
 
                 case "GloCell":
-                    url = "jdbc:postgresql://devpg:5432/qa?currentSchema=db";
-                    conn = DriverManager.getConnection(url, "qa", "qa");
+                    url = "jdbc:postgresql://devpg:5432/glocell?currentSchema=db";
+                    conn = DriverManager.getConnection(url, "glocell", "glocell");
                     break;
 
                 case "Neotel":
@@ -162,8 +175,8 @@ public class NodeTree extends JFrame {
     }
 
     private static void setMenu(JFrame pFrame) {
-        JPanel vPanelToolbar = new JPanel();
-        vPanelToolbar.setSize(400, 600);
+        final JPanel vPanelToolbar = new JPanel();
+        vPanelToolbar.setSize(10, 10);
         vPanelToolbar.add(new JLabel("Please Select a Database : "));
 
         final JComboBox vDbCombobox = new JComboBox();
@@ -178,33 +191,60 @@ public class NodeTree extends JFrame {
         vDbCombobox.addItemListener(new ItemListener()
         {
             @Override
-            public void itemStateChanged(ItemEvent e) {
-                DbSchemaName = vDbCombobox.getSelectedItem().toString();
-                connectToDatabaseOrDie();
-            }
-        });
+            public void itemStateChanged(ItemEvent event) {
+
+                //makes event happen once
+                if (event.getStateChange() == ItemEvent.SELECTED) {
+                    DbSchemaName = (String) vDbCombobox.getSelectedItem();
+                    //Sends a message to User when None db is selected
+                    if ("<None>".equals(DbSchemaName)) {
+                        JOptionPane.showMessageDialog(null, "Please select a Database");
+                    }
+                    //otherwise goes to the correct setting
+                    else {
+                        try {
+                            connectToDatabaseOrDie();
+                            InitTree();
+                            mxGraphComponent graphComponent = new mxGraphComponent(graph);
+
+                            graphComponent.setEnabled(false);
+                            graphComponent.setToolTips(true);
+
+                            vPanelToolbar.add(graphComponent);
+                            vPanelToolbar.revalidate();
+                            vPanelToolbar.repaint();
+
+                        } //else
+                        catch (DBException | SQLException ex) {
+                            System.exit(1);
+                        }
+                    }
+
+                }//if
+            }//itemStateChanged
+        });//addingEvent
 
         vPanelToolbar.add(vDbCombobox);
 
-        JPanel vButtonPanel = new JPanel();
-        JButton vRefresh = new JButton();
-        vRefresh.setText("Refresh");
-        vRefresh.addActionListener(new ActionListener()
-        {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                //clear the panel that has the tree
-
-                vDbCombobox.setSelectedIndex(0);
-
-            }
-        });
-        vButtonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
-        vButtonPanel.add(vRefresh);
-
+//        JPanel vButtonPanel = new JPanel();
+//        JButton vRefresh = new JButton();
+//        vRefresh.setText("Refresh");
+//        vRefresh.addActionListener(new ActionListener()
+//        {
+//            @Override
+//            public void actionPerformed(ActionEvent event) {
+//                //clear the panel that has the tree
+//
+//                vDbCombobox.setSelectedIndex(0);
+//
+//            }
+//        });
+//        vButtonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+//        vButtonPanel.add(vRefresh);
+//
         vPanelToolbar.setLayout(new FlowLayout(FlowLayout.LEFT));
         pFrame.getContentPane().add(vPanelToolbar);
-        pFrame.getContentPane().add(vButtonPanel);
+        //pFrame.getContentPane().add(vButtonPanel);
 
     }
 
