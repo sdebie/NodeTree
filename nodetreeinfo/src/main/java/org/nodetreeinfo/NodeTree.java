@@ -9,11 +9,15 @@ import com.mxgraph.layout.hierarchical.mxHierarchicalLayout;
 import com.mxgraph.layout.mxCompactTreeLayout;
 import com.mxgraph.model.mxCell;
 import com.mxgraph.model.mxGraphModel;
+import com.mxgraph.shape.mxIShape;
 import com.mxgraph.swing.handler.mxRubberband;
 import com.mxgraph.swing.mxGraphComponent;
 import com.mxgraph.util.mxConstants;
 import com.mxgraph.view.mxGraph;
 import com.mxgraph.view.mxStylesheet;
+import com.sun.javafx.collections.MappingChange.Map;
+import java.awt.Component;
+import java.awt.event.MouseAdapter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -31,6 +35,7 @@ import java.sql.Statement;
 import java.util.Hashtable;
 import java.util.LinkedHashMap;
 import javafx.scene.control.Cell;
+import javafx.scene.input.MouseEvent;
 
 /**
  *
@@ -65,8 +70,8 @@ public class NodeTree extends JFrame {
 			while (rs.next()) {
 				String vNodeName = rs.getString("NDS_NAME");
 				Long vNodeID = rs.getLong("NDS_IRN");
-				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30, "fillColor=green");
-
+				graph.insertVertex(parent, String.valueOf(vNodeID), vNodeName, 1, 1, 80, 30);//, "fillColor=blue");
+				graph.setAutoSizeCells(true);
 				//Add Parent and Index
 				relasions.put(vNodeID.intValue(), iIndex);
 				iIndex++;
@@ -79,15 +84,16 @@ public class NodeTree extends JFrame {
 			while (rs.next()) {
 				if (rs.getInt("NDS_NDS_IRN") > 0) {
 					int vParentIndex = relasions.get(rs.getInt("NDS_NDS_IRN"));
-					vChild = vModel.getChildAt(parent, iIndex);
+					vChild = (mxCell) vModel.getChildAt(parent, iIndex);
 					vParent = (mxCell) vModel.getChildAt(parent, vParentIndex);
+
 					graph.insertEdge(parent, "", "", vParent, vChild);
 				}//if
 				iIndex++;
 			}//while
 
-			vLayout.setResizeParent(false);
-			vLayout.setMoveParent(false);
+			vLayout.setResizeParent(true);
+			vLayout.setMoveParent(true);
 			vLayout.setParentBorder(0);
 
 			vLayout.setIntraCellSpacing(30);
@@ -113,9 +119,12 @@ public class NodeTree extends JFrame {
 	{
 		conn = connectToDatabaseOrDie();
 		InitTree();
+
 		JFrame frame = new JFrame();
-		mxGraphComponent graphComponent = new mxGraphComponent(graph);
+		final mxGraphComponent graphComponent = new mxGraphComponent(graph);
 		graphComponent.setEnabled(false);
+		graphComponent.setToolTips(true);
+
 		frame.getContentPane().add(graphComponent);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(800, 600);
