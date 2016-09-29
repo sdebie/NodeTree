@@ -102,9 +102,12 @@ public class NodeTree extends JFrame {
 	{
 		conn = connectToDatabaseOrDie();
 		InitTree();
+
 		JFrame frame = new JFrame();
-		mxGraphComponent graphComponent = new mxGraphComponent(graph);
+		final mxGraphComponent graphComponent = new mxGraphComponent(graph);
 		graphComponent.setEnabled(false);
+		graphComponent.setToolTips(true);
+
 		frame.getContentPane().add(graphComponent);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(800, 600);
